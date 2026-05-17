@@ -170,10 +170,19 @@ export default function App() {
   const handleLogin = async () => {
     try {
       const res = await fetch('/api/auth/facebook/url');
-      const { url } = await res.json();
-      window.open(url, 'fb_oauth', 'width=600,height=700');
-    } catch (err) {
-      setError('Failed to start login process');
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to start login process');
+      }
+      
+      if (!data.url) {
+        throw new Error('No login URL returned from server');
+      }
+
+      window.open(data.url, 'fb_oauth', 'width=600,height=700');
+    } catch (err: any) {
+      setError(err.message || 'Failed to start login process');
     }
   };
 

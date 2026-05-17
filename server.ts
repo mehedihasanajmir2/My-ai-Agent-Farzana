@@ -26,12 +26,16 @@ try {
 }
 
 // Get Firestore instance
-const autopilotDb = firebaseConfig.firestoreDatabaseId 
-  ? getFirestore(firebaseConfig.firestoreDatabaseId)
-  : getFirestore();
+const getAutopilotDb = () => {
+  return firebaseConfig.firestoreDatabaseId 
+    ? getFirestore(firebaseConfig.firestoreDatabaseId)
+    : getFirestore();
+};
 
 const app = express();
 const PORT = 3000;
+
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(express.json());
@@ -146,6 +150,7 @@ app.post('/api/autopost/save', async (req, res) => {
 
   try {
     const docId = `${userId}_${pageId}`;
+    const autopilotDb = getAutopilotDb();
     await autopilotDb.collection('autopostConfigs').doc(docId).set({
       userId,
       pageId,
@@ -169,6 +174,7 @@ app.get('/api/autopost/config', async (req, res) => {
   if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
   try {
+    const autopilotDb = getAutopilotDb();
     const snapshot = await autopilotDb.collection('autopostConfigs')
       .where('userId', '==', userId)
       .get();
@@ -304,11 +310,12 @@ app.post('/api/facebook/post', async (req, res) => {
   }
 });
 
-// --- CRON JOB: AUTOPILOT (Twice Day: 10 AM and 10 PM) ---
+// --- Autopilot Logic (Refactored for reuse) ---
 
-cron.schedule('0 10,22 * * *', async () => {
-  console.log('--- Autopilot Cron Job Started ---');
+async function runAutopilotJob() {
+  console.log('--- Autopilot Processing Started ---');
   try {
+    const autopilotDb = getAutopilotDb();
     const activeConfigs = await autopilotDb.collection('autopostConfigs')
       .where('isActive', '==', true)
       .get();
@@ -338,11 +345,29 @@ cron.schedule('0 10,22 * * *', async () => {
       }
     }
   } catch (err: any) {
-    console.error('Global Cron Error:', err.message);
+    console.error('Global Autopilot Error:', err.message);
   }
-  console.log('--- Autopilot Cron Job Finished ---');
+}
+
+// --- API endpoint to trigger autopilot manually or via Vercel Cron ---
+app.get('/api/autopost/trigger', async (req, res) => {
+  // In production, you'd want to secure this with a secret key
+  const secret = req.query.secret;
+  if (process.env.SESSION_SECRET && secret !== process.env.SESSION_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized manual trigger' });
+  }
+
+  await runAutopilotJob();
+  res.json({ status: 'Autopilot job triggered and processed' });
+});
+
+// --- CRON JOB: AUTOPILOT (Twice Day: 10 AM and 10 PM) ---
+
+cron.schedule('0 10,22 * * *', async () => {
+  console.log('--- Scheduled Cron Triggered ---');
+  await runAutopilotJob();
 }, {
-  timezone: "Asia/Dhaka" // User likely in Bangladesh based on language
+  timezone: "Asia/Dhaka"
 });
 
 // --- Vite & Static Handling ---
