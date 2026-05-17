@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidAutopostConfig(data) {
+      return data.userId is string &&
+             data.pageId is string &&
+             data.pageAccessToken is string &&
+             data.topic is string &&
+             data.language is string &&
+             data.isActive is bool;
+    }
+
+    match /autopostConfigs/{configId} {
+      // Users can only read/write their own configs
+      // Note: We use the userId field to secure access
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    isValidAutopostConfig(request.resource.data);
+      
+      allow update: if isSignedIn() && 
+                    resource.data.userId == request.auth.uid &&
+                    request.resource.data.userId == request.auth.uid &&
+                    isValidAutopostConfig(request.resource.data);
+      
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

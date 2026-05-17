@@ -1,0 +1,25 @@
+{
+  "entities": {
+    "AutopostConfig": {
+      "title": "Autopost Config",
+      "description": "Configuration for automatic Facebook posting",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "pageId": { "type": "string" },
+        "pageAccessToken": { "type": "string" },
+        "topic": { "type": "string" },
+        "language": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "pageId", "pageAccessToken", "topic"]
+    }
+  },
+  "firestore": {
+    "autopostConfigs": {
+      "schema": "AutopostConfig",
+      "description": "Collection of autopost configurations per user/page"
+    }
+  }
+}

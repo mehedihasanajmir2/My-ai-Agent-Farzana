@@ -1,0 +1,6 @@
+{
+  "name": "SocialAgent AI - Facebook AutoPoster",
+  "description": "An intelligent AI agent that finds trending content online and automatically posts to your Facebook page daily to grow your reach.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
